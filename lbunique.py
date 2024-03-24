@@ -29,7 +29,7 @@ def print_loading_bar(rows_now, total_rows):
 
 # gets the URLs to the films, as well as user ratings while the page was requested
 def get_user_ratings(username):
-    print("\nGetting user ratings...\n")
+    print("\nGetting user ratings...")
     user_diary_url = LB_HOME + username + "/films/diary/"
     diary_webpage = requests.get(user_diary_url)
     diary_html = HTMLParser(diary_webpage.text)
@@ -80,7 +80,7 @@ def get_user_ratings(username):
 
 # this gets the site-wide average film rating
 def get_avg_rating_col(url_col):
-    print("Getting average ratings...")
+    print("\n\nGetting average ratings...")
 
     total_films = url_col.size
     np_col = np.empty((total_films,1), dtype=float)
