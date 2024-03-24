@@ -9,7 +9,7 @@ where
 
 $\bar{r}$  is the site-wide average rating of a film, 
 
-$r_u$  is the user's rating, and 
+$r_u$  is the user's rating of the film, and 
 
 $d_a$  is the most a rating could differ from the average (a term I'm calling <i>available deviance</i>). It is defined as $d_a = \text {max}(\bar{r} - 0.5, 5 - \bar{r})$.
 
