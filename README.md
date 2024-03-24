@@ -7,7 +7,7 @@ $$
 
 where
 
-$\bar{r}$  is the average rating of a film, 
+$\bar{r}$  is the site-wide average rating of a film, 
 
 $r_u$  is the user's rating, and 
 
