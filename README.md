@@ -2,7 +2,7 @@
 This is a program to calculate the uniqueness of your ratings on the film review website Letterboxd, according to the following formula:
 
 $$
-u = \text {mean}(\frac{\bar{r} - r_u}{d_a})
+u = \text {mean}(\frac{|\bar{r} - r_u|}{d_a})
 $$
 
 where
