@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import requests
 from selectolax.parser import HTMLParser
-import letterboxdfinders as lbf
+from inc import letterboxdfinders as lbf
 import math
 
 LB_HOME = "https://letterboxd.com/"
@@ -117,8 +117,6 @@ def is_valid_user(username):
     
     userpage = requests.get(LB_HOME+username)
     userpage_html = HTMLParser(userpage.text)
-
-    # get last page
     error_elements = userpage_html.css("body.error")
 
     return not bool(len(error_elements))
