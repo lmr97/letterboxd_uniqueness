@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import requests
 from selectolax.parser import HTMLParser
-from inc import letterboxdfinders as lbf
+import letterboxdfinders as lbf
 import math
 
 LB_HOME = "https://letterboxd.com/"
@@ -123,7 +123,7 @@ def is_valid_user(username):
 
 
 def main():
-    user = sys.argv[1]
+    user = sys.argv[1]  # first CL arg is the program name, the next is the username
 
     if (is_valid_user(user)):
         ratings_df = get_user_ratings(user)  # starts with the URLs and user ratings
