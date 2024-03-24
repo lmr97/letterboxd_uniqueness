@@ -43,6 +43,7 @@ def get_user_ratings(username):
     url_paths_list = []  # href's only have endings of urls to films
     user_ratings_list = []
     for page_num in range(last_page_num):
+        print_loading_bar(page_num, last_page_num)
         current_page = requests.get(user_diary_url + "page/" + str(page_num+1) + "/")
         curr_page_html = HTMLParser(current_page.text)
         url_paths_list += curr_page_html.css("div.poster")
