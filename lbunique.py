@@ -8,17 +8,16 @@
 import sys
 import numpy as np
 import pandas as pd
-#import pycurl
 import requests
 from selectolax.parser import HTMLParser
-import concurrent.futures
+import threading
 import letterboxdfinders as lbf
 import math
-import time
 
 LB_HOME = "https://letterboxd.com/"
 OUTPUT_WIDTH = 50
-
+NUM_THREADS = 10
+LOCK = threading.Lock()
 
 
 def print_loading_bar(rows_now, total_rows):
@@ -53,7 +52,7 @@ def get_user_ratings(username):
         user_ratings_list += curr_page_html.css("span.rating")
 
 
-    # unpack URLs from div nodes, and add homepage
+    # unpack film keys ("slugs") from div nodes, and complete the URL
     for i, divNode in enumerate(url_paths_list):
         # the 'data-film-slug' attribute is the unique key for the film
         url_paths_list[i] = LB_HOME + "film/" + divNode.attributes["data-film-slug"] + "/"
@@ -78,23 +77,65 @@ def get_user_ratings(username):
     user_ratings_df = pd.DataFrame(urls_user_ratings_dict)
 
     return user_ratings_df
-    
+
+
+# the function call for threading
+def thread_worker():
+    global current_row 
+    while(current_row < total_distinct_films):
+        LOCK.acquire()
+        thread_row = current_row
+        current_row += 1           # kicks the row ahead so the current
+        LOCK.release()             # thread is never working on the same row
+
+        avg_ratings_df.iloc[thread_row, 1] = lbf.get_avg_rating(
+            avg_ratings_df.iloc[thread_row, 0])
+        print_loading_bar(current_row, total_distinct_films)
+
 
 
 # this gets the site-wide average film rating
 def get_avg_rating_col(url_col):
     print("\n\nGetting average ratings...")
 
-    total_films = url_col.size
-    np_col = np.empty((total_films,1), dtype=float)
+    # declaring these as global to access in threads
+    global total_distinct_films
+    global avg_ratings_df
+    global current_row
 
-    # concurrency implementation
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        np_col = executor.map(lbf.get_avg_rating, url_col)
+    url_col = list(set(url_col))  # only get average rating once
+    total_distinct_films = len(url_col)
+
+    avg_ratings_dict = {
+        "Film URL": url_col,
+        "Average Rating": np.zeros((total_distinct_films), dtype=float)
+    }
+
+    # empty dataframe to load ratings into
+    avg_ratings_df = pd.DataFrame(avg_ratings_dict)
+
+    ### simple multithreading implementation
+    # what's wild is that it was waayyyy less work to do multithreading
+    # than to use something other than Python's super-slow request library.
+    # I tried both faster_than_requests and PycURL, and I couldn't get either
+    # of them to stop giving me errors. So I multithreaded the part where it 
+    # dragged the longest. And I can still have a loading bar!
+    all_threads = []
+    current_row = 0
+    for i in range(NUM_THREADS):
+        all_threads.append(threading.Thread(target=thread_worker, daemon=True))
+
+    for i in range(NUM_THREADS):
+        all_threads[i].start()
+
+    for i in range(NUM_THREADS):
+        all_threads[i].join()
+    
     
     print()  # to put carriage on new line after loading bar function
-    avg_ratings_df = pd.DataFrame(np_col, columns=['Average Rating'])
+
     return avg_ratings_df
+
 
 
 # is the average closer to the low end or the high end?
@@ -131,7 +172,12 @@ def main():
     user = sys.argv[1]  # first CL arg is the program name, the next is the username
     if (is_valid_user(user)):
         ratings_df = get_user_ratings(user)  # starts with the URLs and user ratings
-        ratings_df = ratings_df.join(get_avg_rating_col(ratings_df['Film URL']))  # get average ratings
+        
+        # since list of avg ratings is only distinct films, it might be shorter, 
+        # so it needs SQL-like join to bring it into the dataframe
+        ratings_df = ratings_df.merge(
+            get_avg_rating_col(ratings_df['Film URL']), 
+            on='Film URL')  
 
         uniqueness = calc_uniqueness(ratings_df[['User Rating', 'Average Rating']])
         print(f"\nUniqueness score for {user}: {round(uniqueness,4)}\n")
