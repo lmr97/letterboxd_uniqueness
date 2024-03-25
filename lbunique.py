@@ -8,10 +8,13 @@
 import sys
 import numpy as np
 import pandas as pd
+#import pycurl
 import requests
 from selectolax.parser import HTMLParser
+import concurrent.futures
 import letterboxdfinders as lbf
 import math
+import time
 
 LB_HOME = "https://letterboxd.com/"
 OUTPUT_WIDTH = 50
@@ -46,11 +49,11 @@ def get_user_ratings(username):
         print_loading_bar(page_num, last_page_num)
         current_page = requests.get(user_diary_url + "page/" + str(page_num+1) + "/")
         curr_page_html = HTMLParser(current_page.text)
-        url_paths_list += curr_page_html.css("div.poster")
+        url_paths_list += curr_page_html.css("div.film-poster")
         user_ratings_list += curr_page_html.css("span.rating")
 
 
-    # unpack URLs from div nodes
+    # unpack URLs from div nodes, and add homepage
     for i, divNode in enumerate(url_paths_list):
         # the 'data-film-slug' attribute is the unique key for the film
         url_paths_list[i] = LB_HOME + "film/" + divNode.attributes["data-film-slug"] + "/"
@@ -85,9 +88,9 @@ def get_avg_rating_col(url_col):
     total_films = url_col.size
     np_col = np.empty((total_films,1), dtype=float)
 
-    for i, url in enumerate(url_col):
-        print_loading_bar(i, total_films)
-        np_col[i] = lbf.get_avg_rating(url)
+    # concurrency implementation
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        np_col = executor.map(lbf.get_avg_rating, url_col)
     
     print()  # to put carriage on new line after loading bar function
     avg_ratings_df = pd.DataFrame(np_col, columns=['Average Rating'])
@@ -124,14 +127,14 @@ def is_valid_user(username):
 
 
 def main():
-    user = sys.argv[1]  # first CL arg is the program name, the next is the username
 
+    user = sys.argv[1]  # first CL arg is the program name, the next is the username
     if (is_valid_user(user)):
         ratings_df = get_user_ratings(user)  # starts with the URLs and user ratings
         ratings_df = ratings_df.join(get_avg_rating_col(ratings_df['Film URL']))  # get average ratings
 
         uniqueness = calc_uniqueness(ratings_df[['User Rating', 'Average Rating']])
-        print(f"Uniqueness score for {user}: {round(uniqueness,4)}")
+        print(f"\nUniqueness score for {user}: {round(uniqueness,4)}\n")
     else:
         print("\nInvalid username. Try again with a different username.\n")
 
