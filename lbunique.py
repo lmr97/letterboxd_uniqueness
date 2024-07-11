@@ -81,16 +81,16 @@ def get_user_ratings(username):
 
 # the function call for threading
 def thread_worker():
-    global current_row 
-    while(current_row < total_distinct_films):
+    global CURRENT_ROW 
+    while(CURRENT_ROW < TOTAL_DISTINCT_FILMS):
         LOCK.acquire()
-        thread_row = current_row
-        current_row += 1           # kicks the row ahead so the current
+        thread_row = CURRENT_ROW
+        CURRENT_ROW += 1           # kicks the row ahead so the current
         LOCK.release()             # thread is never working on the same row
 
-        avg_ratings_df.iloc[thread_row, 1] = lbf.get_avg_rating(
-            avg_ratings_df.iloc[thread_row, 0])
-        print_loading_bar(current_row, total_distinct_films)
+        AVG_RATINGS_DF.iloc[thread_row, 1] = lbf.get_avg_rating(
+            AVG_RATINGS_DF.iloc[thread_row, 0])
+        print_loading_bar(CURRENT_ROW, TOTAL_DISTINCT_FILMS)
 
 
 
@@ -99,20 +99,20 @@ def get_avg_rating_col(url_col):
     print("\n\nGetting average ratings...")
 
     # declaring these as global to access in threads
-    global total_distinct_films
-    global avg_ratings_df
-    global current_row
+    global TOTAL_DISTINCT_FILMS
+    global AVG_RATINGS_DF
+    global CURRENT_ROW
 
     url_col = list(set(url_col))  # only get average rating once
-    total_distinct_films = len(url_col)
+    TOTAL_DISTINCT_FILMS = len(url_col)
 
     avg_ratings_dict = {
         "Film URL": url_col,
-        "Average Rating": np.zeros((total_distinct_films), dtype=float)
+        "Average Rating": np.zeros((TOTAL_DISTINCT_FILMS), dtype=float)
     }
 
     # empty dataframe to load ratings into
-    avg_ratings_df = pd.DataFrame(avg_ratings_dict)
+    AVG_RATINGS_DF = pd.DataFrame(avg_ratings_dict)
 
     ### simple multithreading implementation
     # what's wild is that it was waayyyy less work to do multithreading
@@ -121,7 +121,7 @@ def get_avg_rating_col(url_col):
     # of them to stop giving me errors. So I multithreaded the part where it 
     # dragged the longest. And I can still have a loading bar!
     all_threads = []
-    current_row = 0
+    CURRENT_ROW = 0
     for i in range(NUM_THREADS):
         all_threads.append(threading.Thread(target=thread_worker, daemon=True))
 
@@ -134,7 +134,7 @@ def get_avg_rating_col(url_col):
     
     print()  # to put carriage on new line after loading bar function
 
-    return avg_ratings_df
+    return AVG_RATINGS_DF
 
 
 
